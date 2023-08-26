@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"text/template"
 )
 
 func home(w http.ResponseWriter, r *http.Request) {
@@ -13,7 +14,26 @@ func home(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte("Hello from Snippetbox"))
+	files := []string{
+		"./ui/html/base.tmpl.html",
+		"./ui/html/partials/nav.tmpl.html",
+		"./ui/html/pages/home.tmpl.html",
+	}
+
+	html, err := template.ParseFiles(files...)
+
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	err = html.ExecuteTemplate(w, "base", nil)
+
+	if err != nil {
+		log.Println(err.Error())
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 // Go can't distinguish JSON from plain text, so it'll always be detected text/plain
@@ -45,15 +65,4 @@ func createSnippet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Write([]byte("Create a snippet"))
-}
-
-func main() {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", home)
-	mux.HandleFunc("/snippet", getSnippet)
-	mux.HandleFunc("/snippet/create", createSnippet)
-
-	log.Println("Starting server on PORT 4000")
-	err := http.ListenAndServe(":4000", mux)
-	log.Fatal(err)
 }
