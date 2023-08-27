@@ -15,15 +15,8 @@ services:
       MYSQL_ROOT_HOST: "%"
     volumes:
       - ~/mysql:/var/lib/mysql
-    # networks:
-    #   - snippetbox
   adminer:
     image: adminer
     restart: always
     ports:
       - 9001:8080
-    # networks:
-    #   - snippetbox
-# networks:
-#   snippetbox:
-#     driver: bridge

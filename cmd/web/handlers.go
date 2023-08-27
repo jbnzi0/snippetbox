@@ -1,8 +1,10 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
+	"snippetbox/internal/models"
 	"strconv"
 	"text/template"
 )
@@ -12,6 +14,17 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		app.notFound(w)
 		return
+	}
+
+	snippets, err := app.snippets.GetSnippets(10)
+
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	for _, snippet := range snippets {
+		fmt.Fprintf(w, "%+v\n", snippet)
 	}
 
 	files := []string{
@@ -37,14 +50,25 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 // Go can't distinguish JSON from plain text, so it'll always be detected text/plain
 func (app *application) getSnippet(w http.ResponseWriter, r *http.Request) {
 	queryParams := r.URL.Query()
-	snippetId, err := strconv.Atoi(queryParams.Get("id"))
+	id, err := strconv.Atoi(queryParams.Get("id"))
 
-	if err != nil || snippetId < 1 {
+	if err != nil || id < 1 {
 		app.notFound(w)
 		return
 	}
 
-	fmt.Fprintf(w, "Snippet with ID %d", snippetId)
+	snippet, err := app.snippets.Get(id)
+
+	if err != nil {
+		if errors.Is(err, models.ErrNoRecord) {
+			app.notFound(w)
+		} else {
+			app.serverError(w, err)
+		}
+		return
+	}
+
+	fmt.Fprintf(w, "%+v", snippet)
 }
 
 /**
@@ -62,5 +86,16 @@ func (app *application) createSnippet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte("Create a snippet"))
+	title := "0 snail"
+	content := "O snail\nClimb Mount Fuji,\nBut slowly, slowly!\n\n– Kobayashi Issa"
+	expires := 7
+
+	id, err := app.snippets.Insert(title, content, expires)
+
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/snippet?id=%d", id), http.StatusSeeOther)
 }
