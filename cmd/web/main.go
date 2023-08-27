@@ -25,20 +25,13 @@ func main() {
 		infoLog:  infoLog,
 	}
 
-	mux := http.NewServeMux()
-	fileServer := http.FileServer(http.Dir("./ui/static/"))
-
-	mux.Handle("/static/", http.StripPrefix("/static", fileServer))
-	mux.HandleFunc("/", app.home)
-	mux.HandleFunc("/snippet", app.getSnippet)
-	mux.HandleFunc("/snippet/create", app.createSnippet)
-
+	
 	infoLog.Printf("Starting server on %s", *addr)
 
 	server := &http.Server{
 		Addr:     *addr,
 		ErrorLog: errorLog,
-		Handler:  mux,
+		Handler:  app.routes(),
 	}
 	// requests are handled concurrently, all incoming requests are served in their own goroutine = higher risk of race conditions when accessing shared resources
 	err := server.ListenAndServe()
